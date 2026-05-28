@@ -1,0 +1,13 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', sans-serif;
+  background-color: #f7f8fb;
+}
+
+a {
+  text-decoration: none;
+}
+
+.MuiPaper-root {
+  background-image: none;
+}
