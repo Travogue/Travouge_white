@@ -1,6 +1,7 @@
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
+import cors from 'cors';
+
 import authRoutes from './routes/auth.js';
 import packageRoutes from './routes/packages.js';
 import contentRoutes from './routes/content.js';
@@ -8,30 +9,46 @@ import contentRoutes from './routes/content.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+
+const PORT = process.env.PORT || 4002;
 const API_BASE_PATH = process.env.API_BASE_PATH || '/api';
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
-const ADDITIONAL_ALLOWED_ORIGINS = (process.env.CORS_ALLOWED_ORIGINS || '')
+
+const FRONTEND_ORIGIN =
+  process.env.FRONTEND_ORIGIN || 'http://localhost:5174';
+
+const ADDITIONAL_ALLOWED_ORIGINS = (
+  process.env.CORS_ALLOWED_ORIGINS || ''
+)
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
-const allowedOrigins = [FRONTEND_ORIGIN, ...ADDITIONAL_ALLOWED_ORIGINS];
 
-app.use(cors({
-  origin(origin, callback) {
-    // Allow non-browser clients (curl/postman) and whitelisted browser origins.
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('Not allowed by CORS'));
-  },
-}));
+const allowedOrigins = [
+  FRONTEND_ORIGIN,
+  ...ADDITIONAL_ALLOWED_ORIGINS,
+  'https://travouge-white.vercel.app',
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS blocked'));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(`${API_BASE_PATH}/auth`, authRoutes);
 app.use(`${API_BASE_PATH}/packages`, packageRoutes);
 app.use(`${API_BASE_PATH}/content`, contentRoutes);
+
 app.get('/', (req, res) => {
   res.send({ status: 'Travouge backend is running.' });
 });
@@ -45,15 +62,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Server error. Please try again later.' });
 });
 
-const server = app.listen(PORT, () => {
-  console.log(`Travouge backend listening on http://localhost:${PORT}`);
-});
-
-server.on('error', (error) => {
-  if (error.syscall === 'listen' && error.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please stop the existing process or change the PORT in .env.`);
-    process.exit(1);
-  }
-  console.error('Server error:', error);
-  process.exit(1);
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
